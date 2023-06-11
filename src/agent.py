@@ -1,12 +1,14 @@
 import numpy as np
-import random
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from collections import deque
+from prioritized_memory import PrioritizedMemory
+
 
 class Agent:
-    def __init__(self, state_size, action_size, learning_rate=0.001, discount_factor=0.99, exploration_rate=1.0, exploration_decay=0.995, batch_size=64, memory_size=10000):
+    def __init__(self, state_size, action_size, learning_rate=0.001, discount_factor=0.99, exploration_rate=1.0,
+                 exploration_decay=0.995, batch_size=64, memory_size=10000, target_update_frequency=100):
         self.state_size = state_size
         self.action_size = action_size
         self.learning_rate = learning_rate
@@ -15,41 +17,32 @@ class Agent:
         self.exploration_decay = exploration_decay
         self.batch_size = batch_size
         self.memory_size = memory_size
-        self.memory = deque(maxlen=self.memory_size)
-        self.model, self.optimizer, self.loss_function = self.create_model()
-
-    def create_model(self):
-        """Create the neural network model, optimizer, and loss function."""
-        model = nn.Sequential(
-            nn.Linear(self.state_size, 64),
-            nn.ReLU(),
-            nn.Linear(64, 64),
-            nn.ReLU(),
-            nn.Linear(64, self.action_size)
-        )
-        optimizer = optim.Adam(model.parameters(), lr=self.learning_rate)
-        loss_function = nn.MSELoss()
-        return model, optimizer, loss_function
+        self.memory = PrioritizedMemory(memory_size)
+        self.model = DuelingNetwork(state_size, action_size)
+        self.target_model = DuelingNetwork(state_size, action_size)
+        self.target_model.load_state_dict(self.model.state_dict())
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.loss_function = nn.MSELoss()
+        self.target_update_frequency = target_update_frequency
+        self.training_steps = 0
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=100, gamma=0.9)
 
     def remember(self, state, action, reward, next_state, done):
-        """Store the agent's experiences in memory."""
-        self.memory.append((state, action, reward, next_state, done))
+        self.memory.add(state, action, reward, next_state, done)
 
     def select_action(self, state):
-        """Select an action based on the current state."""
-        if random.uniform(0, 1) < self.exploration_rate:
-            return random.choice(range(self.action_size))
+        if np.random.rand() < self.exploration_rate:
+            return np.random.choice(self.action_size)
         else:
             with torch.no_grad():
                 q_values = self.model(torch.FloatTensor(state))
             return np.argmax(q_values.numpy())
 
     def update_value_function(self):
-        """Update the Q-value function using the agent's experiences."""
         if len(self.memory) < self.batch_size:
             return
 
-        batch = random.sample(self.memory, self.batch_size)
+        batch, indices, weights = self.memory.sample(self.batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
         states = torch.FloatTensor(states)
         actions = torch.LongTensor(actions)
@@ -57,27 +50,32 @@ class Agent:
         next_states = torch.FloatTensor(next_states)
         dones = torch.FloatTensor(dones)
 
-        target_q_values = self.model(states)
+        q_values = self.model(states)
         next_q_values = self.model(next_states)
-        max_next_q_values, _ = torch.max(next_q_values, dim=1)
+        next_target_q_values = self.target_model(next_states)
+        max_next_q_values, max_next_actions = torch.max(next_q_values, dim=1)
 
-        target_q_values[np.arange(self.batch_size), actions] = rewards + (1 - dones) * self.discount_factor * max_next_q_values
-        predicted_q_values = self.model(states)
+        target_q_values = q_values.clone()
+        target_q_values[np.arange(self.batch_size), actions] = rewards + (1 - dones) * self.discount_factor * \
+                                                               next_target_q_values[np.arange(
+                                                                   self.batch_size), max_next_actions].detach()
 
-        loss = self.loss_function(predicted_q_values, target_q_values.detach())
+        loss = self.loss_function(q_values, target_q_values)
         self.optimizer.zero_grad()
         loss.backward()
+
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
+
         self.optimizer.step()
 
+        self.training_steps += 1
+        if self.training_steps % self.target_update_frequency == 0:
+            self.target_model.load_state_dict(self.model.state_dict())
+
     def balance_exploration_and_exploitation(self):
-        """Adjust the exploration rate over time."""
         self.exploration_rate *= self.exploration_decay
 
     def train(self, environment, episodes, termination_condition=None):
-        """
-        Train the agent using the given environment and number of episodes.
-        Optionally, provide a termination_condition function to stop the training process.
-        """
         for episode in range(episodes):
             state = environment.reset()
             done = False
@@ -90,6 +88,6 @@ class Agent:
                 state = next_state
 
             self.balance_exploration_and_exploitation()
+            self.scheduler.step()
             if termination_condition and termination_condition(episode, self):
                 break
-
