@@ -1,0 +1,52 @@
+# PPO Agent Configuration
+
+algorithm:
+  name: "PPO"
+  
+# Network architecture
+network:
+  actor:
+    hidden_dims: [256, 256, 128]
+    activation: "relu"
+    output_activation: "tanh"
+  
+  critic:
+    hidden_dims: [256, 256, 128]
+    activation: "relu"
+  
+# PPO-specific hyperparameters
+ppo:
+  learning_rate: 0.0003
+  gamma: 0.99  # Discount factor
+  gae_lambda: 0.95  # GAE parameter
+  clip_epsilon: 0.2  # PPO clipping parameter
+  value_loss_coef: 0.5
+  entropy_coef: 0.01
+  max_grad_norm: 0.5
+  
+  # Training parameters
+  n_steps: 2048  # Steps per environment before update
+  batch_size: 64
+  n_epochs: 10  # Number of epochs per update
+  normalize_advantages: true
+  
+# Training configuration
+training:
+  total_timesteps: 1000000
+  eval_frequency: 10000  # Evaluate every N steps
+  save_frequency: 50000  # Save model every N steps
+  log_frequency: 1000
+  
+  # Environment settings
+  n_envs: 4  # Number of parallel environments
+  seed: 42
+  
+# Optimization
+optimizer:
+  type: "Adam"
+  eps: 1.0e-5
+  
+# Learning rate schedule
+lr_schedule:
+  type: "linear"  # Options: constant, linear, exponential
+  final_lr: 0.00001
