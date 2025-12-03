@@ -1,0 +1,50 @@
+# Environment Configuration for Vehicle Routing Optimization
+
+environment:
+  name: "VehicleRoutingEnv"
+  
+  # Network configuration
+  network:
+    type: "grid"  # Options: grid, random, city_small, city_large
+    grid_size: [5, 5]  # For grid networks
+    num_nodes: 25  # For random networks
+    edge_density: 0.3  # Probability of edge between nodes
+    
+  # Traffic dynamics
+  traffic:
+    congestion_enabled: true
+    base_speed: 60.0  # km/h
+    min_speed: 10.0
+    max_speed: 80.0
+    congestion_probability: 0.3  # Chance a road becomes congested
+    congestion_duration_range: [5, 15]  # timesteps
+    speed_variation: 0.2  # Standard deviation as fraction of base speed
+    
+  # Vehicle configuration
+  vehicle:
+    num_vehicles: 3
+    capacity: 100  # Package capacity
+    fuel_capacity: 200.0
+    fuel_consumption_rate: 1.0  # Per km
+    
+  # Delivery configuration
+  deliveries:
+    num_customers: 10
+    demand_range: [5, 20]  # Package demand per customer
+    time_windows: true  # Enable time window constraints
+    time_window_width: 50  # timesteps
+    priority_levels: 3  # Number of priority classes
+    
+  # Simulation parameters
+  simulation:
+    max_timesteps: 200
+    time_per_step: 1.0  # minutes
+    
+  # Reward configuration
+  rewards:
+    delivery_completion: 100.0
+    time_penalty: -1.0  # Per timestep
+    fuel_penalty: -0.5  # Per fuel unit
+    late_delivery_penalty: -50.0
+    priority_bonus: 20.0  # For high-priority deliveries
+    distance_penalty: -0.1  # Per km traveled
