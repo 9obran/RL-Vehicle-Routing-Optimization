@@ -1,0 +1,40 @@
+# DQN Agent Configuration
+
+algorithm:
+  name: "DQN"
+  
+# Network architecture
+network:
+  hidden_dims: [256, 256, 128]
+  activation: "relu"
+  dueling: true  # Use dueling architecture
+  double_dqn: true  # Use double DQN
+  
+# DQN-specific hyperparameters
+dqn:
+  learning_rate: 0.0001
+  gamma: 0.99
+  epsilon_start: 1.0
+  epsilon_end: 0.01
+  epsilon_decay: 0.995
+  target_update_frequency: 1000  # Update target network every N steps
+  
+  # Experience replay
+  buffer_size: 100000
+  batch_size: 64
+  learning_starts: 1000  # Start learning after N steps
+  train_frequency: 4  # Train every N steps
+  gradient_steps: 1
+  
+# Training configuration
+training:
+  total_timesteps: 1000000
+  eval_frequency: 10000
+  save_frequency: 50000
+  log_frequency: 1000
+  seed: 42
+  
+# Optimization
+optimizer:
+  type: "Adam"
+  eps: 1.0e-5
