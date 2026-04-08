@@ -1,0 +1,8 @@
+# DQN Routing Project Dependencies
+# Install with: pip install -r requirements.txt
+
+torch>=2.0.0,<2.2.0
+numpy>=1.24.0,<1.26.0
+networkx>=3.0,<3.3
+tqdm>=4.65.0,<4.67.0
+matplotlib>=3.7.0,<3.9.0
