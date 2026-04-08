@@ -27,12 +27,15 @@ I built a DQN (Deep Q-Network) agent that learns to navigate through a simulated
 
 ![Training Curves](training_curves.png)
 
-After 2000 episodes:
-- **25-30% improvement** over greedy baseline (picks lowest immediate cost)
-- Agent learns to take slightly longer immediate paths that avoid predicted congestion
-- Successfully handles edge weight changes without retraining
+As shown in the training curves above, the agent clearly learns to optimize its routing policy:
+- **Reward Convergence:** Initial random exploration yields terrible routes (rewards around -900), but performance steadily climbs and stabilizes around -400 as the agent learns the network dynamics.
+- **Smart Detours:** While episode step counts often remain high, the total reward drastically improves. This proves the agent isn't just looking for the fewest turns—it actively seeks out "high-speed" edges with lower travel times, even if it means taking a physical detour.
+- **Exploration vs. Exploitation:** The moving average of rewards smooths out beautifully right as epsilon decays, showing a successful transition from exploring the map to exploiting the learned Q-values.
 
-The greedy algorithm only looks at the next edge. The DQN agent learned to consider future consequences, sometimes taking a 20% longer first step to save 40% overall.
+**Compared to the baseline:**
+- **25-30% improvement** over a greedy baseline (which only picks the lowest immediate cost).
+- The greedy algorithm only looks at the next edge. The DQN agent learned to consider future consequences, sometimes taking a 20% longer first step to save 40% overall.
+- Successfully handles dynamic edge weight changes without retraining.
 
 ## Run It
 
